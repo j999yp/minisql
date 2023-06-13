@@ -11,7 +11,7 @@ uint32_t Row::SerializeTo(char *buf, Schema *schema) const
         uint32_t uint_;
         float_t float_;
         uint8_t data_[4];
-    } tmp;
+    } tmp = {0};
 
     char *origin = buf;
 
@@ -48,7 +48,7 @@ uint32_t Row::SerializeTo(char *buf, Schema *schema) const
             bit_map = 0;
         }
         buf += fields_[i]->SerializeTo(buf);
-        fields_[i]->~Field();
+        // fields_[i]->~Field();
     }
     return buf - origin;
 }
@@ -64,7 +64,7 @@ uint32_t Row::DeserializeFrom(char *buf, Schema *schema)
         uint32_t uint_;
         float_t float_;
         uint8_t data_[4];
-    } tmp;
+    } tmp = {0};
 
     uint32_t page_id, row_id, magic_num, map_num;
     char *origin = buf, bit_map = 0, *bit_map_ptr;

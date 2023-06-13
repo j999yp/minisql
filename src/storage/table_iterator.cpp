@@ -3,47 +3,91 @@
 #include "common/macros.h"
 #include "storage/table_heap.h"
 
-/**
- * TODO: Student Implement
- */
-TableIterator::TableIterator() {
-
+TableIterator::TableIterator()
+{
 }
 
-TableIterator::TableIterator(const TableIterator &other) {
-
+TableIterator::TableIterator(TableHeap *heap)
+{
+    table = heap;
+    rid = RowId(heap->first_page_id_, 0);
 }
 
-TableIterator::~TableIterator() {
-
+TableIterator::TableIterator(TableHeap *heap, RowId &rid)
+{
+    table = heap;
+    rid = rid;
 }
 
-bool TableIterator::operator==(const TableIterator &itr) const {
-  return false;
+TableIterator::TableIterator(const TableIterator &other)
+{
+    table = other.table;
+    rid = other.rid;
 }
 
-bool TableIterator::operator!=(const TableIterator &itr) const {
-  return false;
+TableIterator::~TableIterator()
+{
+    delete row;
 }
 
-const Row &TableIterator::operator*() {
-  ASSERT(false, "Not implemented yet.");
+bool TableIterator::operator==(const TableIterator &itr) const
+{
+    return rid == itr.rid && table == itr.table;
 }
 
-Row *TableIterator::operator->() {
-  return nullptr;
+bool TableIterator::operator!=(const TableIterator &itr) const
+{
+    return !(*this == itr);
 }
 
-TableIterator &TableIterator::operator=(const TableIterator &itr) noexcept {
-  ASSERT(false, "Not implemented yet.");
+const Row &TableIterator::operator*()
+{
+    ASSERT(*this != table->End(), "OOB error");
+
+    table->GetTuple(row, nullptr);
+    return *row;
+}
+
+Row *TableIterator::operator->()
+{
+    ASSERT(*this != table->End(), "OOB error");
+
+    table->GetTuple(row, nullptr);
+    return row;
+}
+
+TableIterator &TableIterator::operator=(const TableIterator &itr) noexcept
+{
+    TableIterator tmp(itr);
+    return tmp;
 }
 
 // ++iter
-TableIterator &TableIterator::operator++() {
-  return *this;
+TableIterator &TableIterator::operator++()
+{
+    FindNextRow(rid);
+    return *this;
 }
 
 // iter++
-TableIterator TableIterator::operator++(int) {
-  return TableIterator();
+TableIterator TableIterator::operator++(int)
+{
+    TableIterator tmp(*this);
+    FindNextRow(rid);
+    return TableIterator(tmp);
+}
+
+void TableIterator::FindNextRow(RowId &row_id)
+{
+    RowId next(row_id);
+    TablePage *page_ptr = reinterpret_cast<TablePage *>(table->buffer_pool_manager_->FetchPage(row_id.GetPageId()));
+    // current page has no more rows
+    if (!page_ptr->GetNextTupleRid(row_id, &next))
+    {
+        page_id_t next = page_ptr->GetNextPageId();
+        if (next != INVALID_PAGE_ID)
+            row_id.Set(next, 0);
+        else
+            row_id = INVALID_ROWID;
+    }
 }

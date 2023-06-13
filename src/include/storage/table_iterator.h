@@ -7,31 +7,40 @@
 
 class TableHeap;
 
-class TableIterator {
+class TableIterator
+{
 public:
-  // you may define your own constructor based on your member variables
-  explicit TableIterator();
+    // you may define your own constructor based on your member variables
+    explicit TableIterator();
 
-  explicit TableIterator(const TableIterator &other);
+    explicit TableIterator(TableHeap *);
 
-  virtual ~TableIterator();
+    explicit TableIterator(TableHeap *, RowId &);
 
-  bool operator==(const TableIterator &itr) const;
+    explicit TableIterator(const TableIterator &other);
 
-  bool operator!=(const TableIterator &itr) const;
+    virtual ~TableIterator();
 
-  const Row &operator*();
+    bool operator==(const TableIterator &itr) const;
 
-  Row *operator->();
+    bool operator!=(const TableIterator &itr) const;
 
-  TableIterator &operator=(const TableIterator &itr) noexcept;
+    const Row &operator*();
 
-  TableIterator &operator++();
+    Row *operator->();
 
-  TableIterator operator++(int);
+    TableIterator &operator=(const TableIterator &itr) noexcept;
+
+    TableIterator &operator++();
+
+    TableIterator operator++(int);
 
 private:
-  // add your own private member variables here
+    // add your own private member variables here
+    TableHeap *table = nullptr;
+    RowId rid{INVALID_ROWID};
+    Row *row = new Row();
+    void FindNextRow(RowId &);
 };
 
-#endif  // MINISQL_TABLE_ITERATOR_H
+#endif // MINISQL_TABLE_ITERATOR_H
