@@ -9,7 +9,12 @@
 #include "buffer/buffer_pool_manager.h"
 
 // define page type enum
-enum class IndexPageType { INVALID_INDEX_PAGE = 0, LEAF_PAGE, INTERNAL_PAGE };
+enum class IndexPageType
+{
+    INVALID_INDEX_PAGE = 0,
+    LEAF_PAGE,
+    INTERNAL_PAGE
+};
 
 #define UNDEFINED_SIZE 0
 /**
@@ -25,49 +30,50 @@ enum class IndexPageType { INVALID_INDEX_PAGE = 0, LEAF_PAGE, INTERNAL_PAGE };
  * | ParentPageId (4) | PageId(4) |
  * ----------------------------------------------------------------------------
  */
-class BPlusTreePage {
- public:
-  bool IsLeafPage() const;
+class BPlusTreePage
+{
+public:
+    bool IsLeafPage() const;
 
-  bool IsRootPage() const;
+    bool IsRootPage() const;
 
-  void SetPageType(IndexPageType page_type);
+    void SetPageType(IndexPageType page_type);
 
-  int GetKeySize() const;
+    int GetKeySize() const;
 
-  void SetKeySize(int size);
+    void SetKeySize(int size);
 
-  int GetSize() const;
+    int GetSize() const;
 
-  void SetSize(int size);
+    void SetSize(int size);
 
-  void IncreaseSize(int amount);
+    void IncreaseSize(int amount);
 
-  int GetMaxSize() const;
+    int GetMaxSize() const;
 
-  void SetMaxSize(int max_size);
+    void SetMaxSize(int max_size);
 
-  int GetMinSize() const;
+    int GetMinSize() const;
 
-  page_id_t GetParentPageId() const;
+    page_id_t GetParentPageId() const;
 
-  void SetParentPageId(page_id_t parent_page_id);
+    void SetParentPageId(page_id_t parent_page_id);
 
-  page_id_t GetPageId() const;
+    page_id_t GetPageId() const;
 
-  void SetPageId(page_id_t page_id);
+    void SetPageId(page_id_t page_id);
 
-  void SetLSN(lsn_t lsn = INVALID_LSN);
+    void SetLSN(lsn_t lsn = INVALID_LSN);
 
- private:
-  // member variable, attributes that both internal and leaf page share
-  [[maybe_unused]] IndexPageType page_type_;
-  [[maybe_unused]] int key_size_;
-  [[maybe_unused]] lsn_t lsn_;
-  [[maybe_unused]] int size_;
-  [[maybe_unused]] int max_size_;
-  [[maybe_unused]] page_id_t parent_page_id_;
-  [[maybe_unused]] page_id_t page_id_;
+private:
+    // member variable, attributes that both internal and leaf page share
+    [[maybe_unused]] IndexPageType page_type_;
+    [[maybe_unused]] int key_size_;
+    [[maybe_unused]] lsn_t lsn_;
+    [[maybe_unused]] int size_;
+    [[maybe_unused]] int max_size_;
+    [[maybe_unused]] page_id_t parent_page_id_;
+    [[maybe_unused]] page_id_t page_id_;
 };
 
-#endif  // MINISQL_B_PLUS_TREE_PAGE_H
+#endif // MINISQL_B_PLUS_TREE_PAGE_H

@@ -23,56 +23,57 @@
  * | HEADER | KEY(1)+PAGE_ID(1) | KEY(2)+PAGE_ID(2) | ... | KEY(n)+PAGE_ID(n) |
  *  --------------------------------------------------------------------------
  */
-class BPlusTreeInternalPage : public BPlusTreePage {
- public:
-  // must call initialize method after "create" a new node
-  void Init(page_id_t page_id, page_id_t parent_id = INVALID_PAGE_ID, int key_size = UNDEFINED_SIZE,
-            int max_size = UNDEFINED_SIZE);
+class BPlusTreeInternalPage : public BPlusTreePage
+{
+public:
+    // must call initialize method after "create" a new node
+    void Init(page_id_t page_id, page_id_t parent_id = INVALID_PAGE_ID, int key_size = UNDEFINED_SIZE,
+              int max_size = UNDEFINED_SIZE);
 
-  GenericKey *KeyAt(int index);
+    GenericKey *KeyAt(int index);
 
-  void SetKeyAt(int index, GenericKey *key);
+    void SetKeyAt(int index, GenericKey *key);
 
-  int ValueIndex(const page_id_t &value) const;
+    int ValueIndex(const page_id_t &value) const;
 
-  page_id_t ValueAt(int index) const;
+    page_id_t ValueAt(int index) const;
 
-  void SetValueAt(int index, page_id_t value);
+    void SetValueAt(int index, page_id_t value);
 
-  void *PairPtrAt(int index);
+    void *PairPtrAt(int index);
 
-  void PairCopy(void *dest, void *src, int pair_num = 1);
+    void PairCopy(void *dest, void *src, int pair_num = 1);
 
-  page_id_t Lookup(const GenericKey *key, const KeyManager &KP);
+    page_id_t Lookup(const GenericKey *key, const KeyManager &KP);
 
-  void PopulateNewRoot(const page_id_t &old_value, GenericKey *new_key, const page_id_t &new_value);
+    void PopulateNewRoot(const page_id_t &old_value, GenericKey *new_key, const page_id_t &new_value);
 
-  int InsertNodeAfter(const page_id_t &old_value, GenericKey *new_key, const page_id_t &new_value);
+    int InsertNodeAfter(const page_id_t &old_value, GenericKey *new_key, const page_id_t &new_value);
 
-  void Remove(int index);
+    void Remove(int index);
 
-  page_id_t RemoveAndReturnOnlyChild();
+    page_id_t RemoveAndReturnOnlyChild();
 
-  // Split and Merge utility methods
-  void MoveAllTo(BPlusTreeInternalPage *recipient, GenericKey *middle_key, BufferPoolManager *buffer_pool_manager);
+    // Split and Merge utility methods
+    void MoveAllTo(BPlusTreeInternalPage *recipient, GenericKey *middle_key, BufferPoolManager *buffer_pool_manager);
 
-  void MoveHalfTo(BPlusTreeInternalPage *recipient, BufferPoolManager *buffer_pool_manager);
+    void MoveHalfTo(BPlusTreeInternalPage *recipient, BufferPoolManager *buffer_pool_manager);
 
-  void MoveFirstToEndOf(BPlusTreeInternalPage *recipient, GenericKey *middle_key,
-                        BufferPoolManager *buffer_pool_manager);
+    void MoveFirstToEndOf(BPlusTreeInternalPage *recipient, GenericKey *middle_key,
+                          BufferPoolManager *buffer_pool_manager);
 
-  void MoveLastToFrontOf(BPlusTreeInternalPage *recipient, GenericKey *middle_key,
-                         BufferPoolManager *buffer_pool_manager);
+    void MoveLastToFrontOf(BPlusTreeInternalPage *recipient, GenericKey *middle_key,
+                           BufferPoolManager *buffer_pool_manager);
 
- private:
-  void CopyNFrom(void *src, int size, BufferPoolManager *buffer_pool_manager);
+private:
+    void CopyNFrom(void *src, int size, BufferPoolManager *buffer_pool_manager);
 
-  void CopyLastFrom(GenericKey *key, page_id_t value, BufferPoolManager *buffer_pool_manager);
+    void CopyLastFrom(GenericKey *key, page_id_t value, BufferPoolManager *buffer_pool_manager);
 
-  void CopyFirstFrom(page_id_t value, BufferPoolManager *buffer_pool_manager);
+    void CopyFirstFrom(page_id_t value, BufferPoolManager *buffer_pool_manager);
 
-  char data_[PAGE_SIZE - INTERNAL_PAGE_HEADER_SIZE];
+    char data_[PAGE_SIZE - INTERNAL_PAGE_HEADER_SIZE];
 };
 
 using InternalPage = BPlusTreeInternalPage;
-#endif  // MINISQL_B_PLUS_TREE_INTERNAL_PAGE_H
+#endif // MINISQL_B_PLUS_TREE_INTERNAL_PAGE_H
