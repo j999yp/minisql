@@ -5,11 +5,23 @@
 
 #include "common/config.h"
 
+// #include <boost/serialization/array.hpp>
+// #include <boost/archive/binary_iarchive.hpp>
+// #include <boost/archive/binary_oarchive.hpp>
+
 /**
  * | page_id(32bit) | slot_num(32bit) |
  */
 class RowId
 {
+    // friend class boost::serialization::access;
+    // template<class Archive>
+    // void serialize(Archive & ar, const unsigned int version)
+    // {
+    //     ar & page_id_;
+    //     ar & slot_num_;
+    // }
+
 public:
     RowId() = default;
 

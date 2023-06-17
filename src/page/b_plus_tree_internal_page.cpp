@@ -78,7 +78,9 @@ void InternalPage::PairCopy(void *dest, void *src, int pair_num)
  */
 page_id_t InternalPage::Lookup(const GenericKey *key, const KeyManager &KM)
 {
-    int left = 1, right = GetSize() - 1;
+    int left = 0, right = GetSize() - 1;
+    if (right == 0)
+        return ValueAt(0);
     while (right - left > 1)
     {
         int mid = (left + right) / 2;
@@ -86,11 +88,11 @@ page_id_t InternalPage::Lookup(const GenericKey *key, const KeyManager &KM)
         if (res > 0)
             left = mid;
         else if (res < 0)
-            right = mid - 1;
+            right = mid;
         else
             return ValueAt(mid);
     }
-    return KM.CompareKeys(key, KeyAt(right)) > 0 ? ValueAt(right) : ValueAt(left);
+    return KM.CompareKeys(key, KeyAt(right)) < 0 ? ValueAt(left) : ValueAt(right);
 }
 
 /*****************************************************************************
@@ -133,7 +135,6 @@ int InternalPage::InsertNodeAfter(const page_id_t &old_value, GenericKey *new_ke
  * Remove half of key & value pairs from this page to "recipient" page
  * buffer_pool_manager 是干嘛的？传给CopyNFrom()用于Fetch数据页
  */
-// TODO: 到底是max的一半还是current的一半?
 void InternalPage::MoveHalfTo(InternalPage *recipient, BufferPoolManager *buffer_pool_manager)
 {
     int total = GetSize(), idx = GetMinSize();
@@ -156,7 +157,7 @@ void InternalPage::CopyNFrom(void *src, int size, BufferPoolManager *buffer_pool
     for (int i = 0; i < size; i++)
     {
         page_id_t page_id = ValueAt(idx + i);
-        BPlusTreePage *page_ptr = reinterpret_cast<BPlusTreePage *>(buffer_pool_manager->FetchPage(page_id));
+        BPlusTreePage *page_ptr = reinterpret_cast<BPlusTreePage *>(buffer_pool_manager->FetchPage(page_id)->GetData());
         page_ptr->SetParentPageId(GetPageId());
         buffer_pool_manager->UnpinPage(page_id, true);
     }
@@ -175,6 +176,7 @@ void InternalPage::Remove(int index)
 {
     std::move(data_ + (index + 1) * pair_size, data_ + GetSize() * pair_size, data_ + index * pair_size);
     IncreaseSize(-1);
+    memset(data_ + GetSize() * pair_size, 0, pair_size); // cleaning rubbish data
 }
 
 /*
@@ -233,7 +235,7 @@ void InternalPage::CopyLastFrom(GenericKey *key, const page_id_t value, BufferPo
     SetValueAt(GetSize(), value);
     SetKeyAt(GetSize(), key);
     IncreaseSize(1);
-    BPlusTreePage *page_ptr = reinterpret_cast<BPlusTreePage *>(buffer_pool_manager->FetchPage(value));
+    BPlusTreePage *page_ptr = reinterpret_cast<BPlusTreePage *>(buffer_pool_manager->FetchPage(value)->GetData());
     page_ptr->SetParentPageId(GetPageId());
     buffer_pool_manager->UnpinPage(value, true);
 }
@@ -245,7 +247,7 @@ void InternalPage::CopyLastFrom(GenericKey *key, const page_id_t value, BufferPo
  * You also need to use BufferPoolManager to persist changes to the parent page id for those pages that are
  * moved to the recipient
  */
-//TODO: update parent entry
+// TODO: update parent entry
 void InternalPage::MoveLastToFrontOf(InternalPage *recipient, GenericKey *middle_key,
                                      BufferPoolManager *buffer_pool_manager)
 {
@@ -263,7 +265,7 @@ void InternalPage::CopyFirstFrom(const page_id_t value, BufferPoolManager *buffe
 {
     std::move_backward(data_, data_ + GetSize() * pair_size, data_ + (GetSize() + 1) * pair_size);
     SetValueAt(0, value);
-    BPlusTreePage *page_ptr = reinterpret_cast<BPlusTreePage *>(buffer_pool_manager->FetchPage(value));
+    BPlusTreePage *page_ptr = reinterpret_cast<BPlusTreePage *>(buffer_pool_manager->FetchPage(value)->GetData());
     page_ptr->SetParentPageId(GetPageId());
     buffer_pool_manager->UnpinPage(value, true);
     IncreaseSize(1);
