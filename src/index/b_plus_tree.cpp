@@ -107,7 +107,7 @@ void BPlusTree::StartNewTree(GenericKey *key, const RowId &value)
     leaf->Insert(key, value, processor_);
     buffer_pool_manager_->UnpinPage(root_page_id_, true);
     buffer_pool_manager_->UnpinPage(id, true);
-    UpdateRootPageId();
+    UpdateRootPageId(true);
 }
 
 /*
@@ -194,7 +194,7 @@ void BPlusTree::InsertIntoParent(BPlusTreePage *old_node, GenericKey *key, BPlus
         old_node->SetParentPageId(root_page_id_);
         new_node->SetParentPageId(root_page_id_);
         buffer_pool_manager_->UnpinPage(root_page_id_, true);
-        UpdateRootPageId();
+        UpdateRootPageId(false);
     }
     else
     {

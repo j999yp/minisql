@@ -5,11 +5,13 @@ IndexMetadata::IndexMetadata(const index_id_t index_id, const std::string &index
     : index_id_(index_id), index_name_(index_name), table_id_(table_id), key_map_(key_map) {}
 
 IndexMetadata *IndexMetadata::Create(const index_id_t index_id, const string &index_name, const table_id_t table_id,
-                                     const vector<uint32_t> &key_map) {
-  return new IndexMetadata(index_id, index_name, table_id, key_map);
+                                     const vector<uint32_t> &key_map)
+{
+    return new IndexMetadata(index_id, index_name, table_id, key_map);
 }
 
-uint32_t IndexMetadata::SerializeTo(char *buf) const {
+uint32_t IndexMetadata::SerializeTo(char *buf) const
+{
     char *p = buf;
     uint32_t ofs = GetSerializedSize();
     ASSERT(ofs <= PAGE_SIZE, "Failed to serialize index info.");
@@ -31,7 +33,8 @@ uint32_t IndexMetadata::SerializeTo(char *buf) const {
     MACH_WRITE_UINT32(buf, key_map_.size());
     buf += 4;
     // key mapping in table
-    for (auto &col_index : key_map_) {
+    for (auto &col_index : key_map_)
+    {
         MACH_WRITE_UINT32(buf, col_index);
         buf += 4;
     }
@@ -39,15 +42,15 @@ uint32_t IndexMetadata::SerializeTo(char *buf) const {
     return ofs;
 }
 
-/**
- * TODO: Student Implement
- */
-uint32_t IndexMetadata::GetSerializedSize() const {
-  return 0;
+uint32_t IndexMetadata::GetSerializedSize() const
+{
+    return sizeof(uint32_t) + sizeof(index_id_t) + sizeof(uint32_t) + index_name_.length() + sizeof(table_id_t) + sizeof(uint32_t) + sizeof(uint32_t) * key_map_.size();
 }
 
-uint32_t IndexMetadata::DeserializeFrom(char *buf, IndexMetadata *&index_meta) {
-    if (index_meta != nullptr) {
+uint32_t IndexMetadata::DeserializeFrom(char *buf, IndexMetadata *&index_meta)
+{
+    if (index_meta != nullptr)
+    {
         LOG(WARNING) << "Pointer object index info is not null in table info deserialize." << std::endl;
     }
     char *p = buf;
@@ -71,7 +74,8 @@ uint32_t IndexMetadata::DeserializeFrom(char *buf, IndexMetadata *&index_meta) {
     buf += 4;
     // key mapping in table
     std::vector<uint32_t> key_map;
-    for (uint32_t i = 0; i < index_key_count; i++) {
+    for (uint32_t i = 0; i < index_key_count; i++)
+    {
         uint32_t key_index = MACH_READ_UINT32(buf);
         buf += 4;
         key_map.push_back(key_index);
@@ -81,29 +85,35 @@ uint32_t IndexMetadata::DeserializeFrom(char *buf, IndexMetadata *&index_meta) {
     return buf - p;
 }
 
-Index *IndexInfo::CreateIndex(BufferPoolManager *buffer_pool_manager, const string &index_type) {
-  size_t max_size = 0;
-  for (auto col : key_schema_->GetColumns()) {
-    max_size += col->GetLength();
-  }
-
-  if (index_type == "bptree") {
-    if (max_size <= 8)
-      max_size = 16;
-    else if (max_size <= 24)
-      max_size = 32;
-    else if (max_size <= 56)
-      max_size = 64;
-    else if (max_size <= 120)
-      max_size = 128;
-    else if (max_size <= 248)
-      max_size = 256;
-    else {
-      LOG(ERROR) << "GenericKey size is too large";
-      return nullptr;
+Index *IndexInfo::CreateIndex(BufferPoolManager *buffer_pool_manager, const string &index_type)
+{
+    size_t max_size = 0;
+    for (auto col : key_schema_->GetColumns())
+    {
+        max_size += col->GetLength();
     }
-  } else {
-    return nullptr;
-  }
-  return new BPlusTreeIndex(meta_data_->index_id_, key_schema_, max_size, buffer_pool_manager);
+
+    if (index_type == "bptree")
+    {
+        if (max_size <= 8)
+            max_size = 16;
+        else if (max_size <= 24)
+            max_size = 32;
+        else if (max_size <= 56)
+            max_size = 64;
+        else if (max_size <= 120)
+            max_size = 128;
+        else if (max_size <= 248)
+            max_size = 256;
+        else
+        {
+            LOG(ERROR) << "GenericKey size is too large";
+            return nullptr;
+        }
+    }
+    else
+    {
+        return nullptr;
+    }
+    return new BPlusTreeIndex(meta_data_->index_id_, key_schema_, max_size, buffer_pool_manager);
 }

@@ -130,6 +130,9 @@ uint32_t Column::DeserializeFrom(char *buf, Column *&column)
     buf += sizeof(uint8_t);
 
     ASSERT(magic_num == COLUMN_MAGIC_NUM, "Invalid magic num");
-    column = new Column(std::string(name), (TypeId)type, data_len, pos, nullable, unique);
+    if (type == TypeId::kTypeChar)
+        column = new Column(std::string(name), (TypeId)type, data_len, pos, nullable, unique);
+    else
+        column = new Column(std::string(name), (TypeId)type, pos, nullable, unique);
     return buf - origin;
 }

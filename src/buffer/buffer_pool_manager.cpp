@@ -155,7 +155,7 @@ bool BufferPoolManager::UnpinPage(page_id_t page_id, bool is_dirty)
         return false;
 
     frame_id_t frame_id = (*it).second;
-    pages_[frame_id].is_dirty_ = is_dirty;
+    pages_[frame_id].is_dirty_ |= is_dirty;
 
     if (pages_[frame_id].pin_count_ == 0)
         return false;

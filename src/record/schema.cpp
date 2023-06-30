@@ -66,7 +66,7 @@ uint32_t Schema::DeserializeFrom(char *buf, Schema *&schema)
     buf += sizeof(uint32_t);
 
     std::vector<Column *> columns(col_num, nullptr);
-    for (auto it : columns)
+    for (auto &it : columns)
     {
         buf += Column::DeserializeFrom(buf, it);
     }

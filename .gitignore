@@ -6,3 +6,6 @@ datas/
 .idea/
 cmake-build-debug/
 cmake-build-release/
+.clang-format
+clean.sh
+reformat.sh

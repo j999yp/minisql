@@ -1,6 +1,7 @@
 #include "catalog/table.h"
 
-uint32_t TableMetadata::SerializeTo(char *buf) const {
+uint32_t TableMetadata::SerializeTo(char *buf) const
+{
     char *p = buf;
     uint32_t ofs = GetSerializedSize();
     ASSERT(ofs <= PAGE_SIZE, "Failed to serialize table info.");
@@ -24,16 +25,15 @@ uint32_t TableMetadata::SerializeTo(char *buf) const {
     return ofs;
 }
 
-
-/**
- * TODO: Student Implement
- */
-uint32_t TableMetadata::GetSerializedSize() const {
-  return 0;
+uint32_t TableMetadata::GetSerializedSize() const
+{
+    return sizeof(uint32_t) /* magic number */ + sizeof(table_id_t) /* table_id */ + sizeof(uint32_t) /* strlen */ + table_name_.length() + sizeof(page_id_t) /* page_id */ + schema_->GetSerializedSize() /* schema */;
 }
 
-uint32_t TableMetadata::DeserializeFrom(char *buf, TableMetadata *&table_meta) {
-    if (table_meta != nullptr) {
+uint32_t TableMetadata::DeserializeFrom(char *buf, TableMetadata *&table_meta)
+{
+    if (table_meta != nullptr)
+    {
         LOG(WARNING) << "Pointer object table info is not null in table info deserialize." << std::endl;
     }
     char *p = buf;
@@ -66,9 +66,10 @@ uint32_t TableMetadata::DeserializeFrom(char *buf, TableMetadata *&table_meta) {
  * @param heap Memory heap passed by TableInfo
  */
 TableMetadata *TableMetadata::Create(table_id_t table_id, std::string table_name, page_id_t root_page_id,
-                                     TableSchema *schema) {
-  // allocate space for table metadata
-  return new TableMetadata(table_id, table_name, root_page_id, schema);
+                                     TableSchema *schema)
+{
+    // allocate space for table metadata
+    return new TableMetadata(table_id, table_name, root_page_id, schema);
 }
 
 TableMetadata::TableMetadata(table_id_t table_id, std::string table_name, page_id_t root_page_id, TableSchema *schema)
