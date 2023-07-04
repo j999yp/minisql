@@ -429,7 +429,11 @@ IndexIterator BPlusTree::End()
  */
 Page *BPlusTree::FindLeafPage(const GenericKey *key, page_id_t page_id, bool leftMost)
 {
-    InternalPage *page_ptr = reinterpret_cast<InternalPage *>(buffer_pool_manager_->FetchPage(root_page_id_)->GetData());
+    InternalPage *page_ptr = nullptr;
+    if (page_id == INVALID_PAGE_ID)
+        page_ptr = reinterpret_cast<InternalPage *>(buffer_pool_manager_->FetchPage(root_page_id_)->GetData());
+    else
+        page_ptr = reinterpret_cast<InternalPage *>(buffer_pool_manager_->FetchPage(page_id)->GetData());
     while (page_ptr != nullptr && !page_ptr->IsLeafPage())
     {
         buffer_pool_manager_->UnpinPage(page_ptr->GetPageId(), false);

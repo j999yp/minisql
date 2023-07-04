@@ -9,19 +9,19 @@ TableIterator::TableIterator()
 
 TableIterator::TableIterator(TableHeap *heap)
 {
-    table = heap;
+    tables = heap;
     rid = RowId(heap->first_page_id_, 0);
 }
 
 TableIterator::TableIterator(TableHeap *heap, RowId &rid)
 {
-    table = heap;
+    tables = heap;
     rid = rid;
 }
 
 TableIterator::TableIterator(const TableIterator &other)
 {
-    table = other.table;
+    tables = other.tables;
     rid = other.rid;
 }
 
@@ -32,7 +32,7 @@ TableIterator::~TableIterator()
 
 bool TableIterator::operator==(const TableIterator &itr) const
 {
-    return rid == itr.rid && table == itr.table;
+    return rid == itr.rid && tables == itr.tables;
 }
 
 bool TableIterator::operator!=(const TableIterator &itr) const
@@ -42,17 +42,19 @@ bool TableIterator::operator!=(const TableIterator &itr) const
 
 const Row &TableIterator::operator*()
 {
-    ASSERT(*this != table->End(), "OOB error");
+    ASSERT(*this != tables->End(), "OOB error");
 
-    table->GetTuple(row, nullptr);
+    row->SetRowId(rid);
+    tables->GetTuple(row, nullptr);
     return *row;
 }
 
 Row *TableIterator::operator->()
 {
-    ASSERT(*this != table->End(), "OOB error");
+    ASSERT(*this != tables->End(), "OOB error");
 
-    table->GetTuple(row, nullptr);
+    row->SetRowId(rid);
+    tables->GetTuple(row, nullptr);
     return row;
 }
 
@@ -79,15 +81,21 @@ TableIterator TableIterator::operator++(int)
 
 void TableIterator::FindNextRow(RowId &row_id)
 {
-    RowId next(row_id);
-    TablePage *page_ptr = reinterpret_cast<TablePage *>(table->buffer_pool_manager_->FetchPage(row_id.GetPageId()));
+    RowId next;
+    TablePage *current_page = reinterpret_cast<TablePage *>(tables->buffer_pool_manager_->FetchPage(row_id.GetPageId())->GetData());
+    tables->buffer_pool_manager_->UnpinPage(current_page->GetPageId(), false);
+    if (current_page->GetNextTupleRid(row_id, &next))
+        row_id = next;
     // current page has no more rows
-    if (!page_ptr->GetNextTupleRid(row_id, &next))
+    else
     {
-        page_id_t next = page_ptr->GetNextPageId();
-        if (next != INVALID_PAGE_ID)
-            row_id.Set(next, 0);
-        else
+        page_id_t next_page_id = current_page->GetNextPageId();
+        if (next_page_id == INVALID_PAGE_ID)
+        {
             row_id = INVALID_ROWID;
+            tables = nullptr;
+        }
+        else
+            row_id.Set(next_page_id, 0);
     }
 }

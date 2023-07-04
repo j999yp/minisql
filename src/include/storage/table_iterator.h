@@ -37,7 +37,7 @@ public:
 
 private:
     // add your own private member variables here
-    TableHeap *table = nullptr;
+    TableHeap *tables = nullptr;
     RowId rid{INVALID_ROWID};
     Row *row = new Row();
     void FindNextRow(RowId &);
