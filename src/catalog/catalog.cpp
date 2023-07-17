@@ -127,23 +127,25 @@ dberr_t CatalogManager::CreateTable(const string &table_name, TableSchema *schem
     if (table_names_.find(table_name) != table_names_.end())
         return DB_TABLE_ALREADY_EXIST;
 
-    table_id_t table_id = next_table_id_.fetch_add(1);
-    // table_id_t table_id = catalog_meta_->GetNextTableId();
+    table_id_t table_id = catalog_meta_->GetNextTableId();
+    table_names_[table_name] = table_id;
+    page_id_t meta_page_id;
+    Page *table_meta_page = buffer_pool_manager_->NewPage(meta_page_id);
+    catalog_meta_->table_meta_pages_[table_id] = meta_page_id;
 
-    TableHeap *table_heap = TableHeap::Create(buffer_pool_manager_, schema, txn, log_manager_, lock_manager_);
-
-    page_id_t page_id;
-    Page *table_meta_page = buffer_pool_manager_->NewPage(page_id);
-    TableMetadata *table_meta_data = TableMetadata::Create(table_id, table_name, table_heap->GetFirstPageId(), Schema::DeepCopySchema(schema));
+    Schema *schema_copy = Schema::DeepCopySchema(schema);
+    TableHeap *table_heap = TableHeap::Create(buffer_pool_manager_, schema_copy, txn, log_manager_, lock_manager_);
+    TableMetadata *table_meta_data = TableMetadata::Create(table_id, table_name, meta_page_id, schema_copy);
+    table_meta_data->SerializeTo(table_meta_page->GetData());
+    buffer_pool_manager_->UnpinPage(meta_page_id, true);
 
     table_info = TableInfo::Create();
     table_info->Init(table_meta_data, table_heap);
-
-    catalog_meta_->table_meta_pages_[table_id] = page_id;
-    table_names_[table_name] = table_id;
     tables_[table_id] = table_info;
-    table_meta_data->SerializeTo(table_meta_page->GetData());
-    buffer_pool_manager_->UnpinPage(page_id, true);
+
+    Page *catalog_meta_page = buffer_pool_manager_->FetchPage(CATALOG_META_PAGE_ID);
+    catalog_meta_->SerializeTo(catalog_meta_page->GetData());
+    buffer_pool_manager_->UnpinPage(CATALOG_META_PAGE_ID, true);
 
     return DB_SUCCESS;
 }
@@ -189,22 +191,23 @@ dberr_t CatalogManager::CreateIndex(const std::string &table_name, const string 
         key_map.push_back(index);
     }
 
-    index_id_t index_id = next_index_id_.fetch_add(1);
-    // index_id_t index_id = catalog_meta_->GetNextIndexId();
+    index_id_t index_id = catalog_meta_->GetNextIndexId();
+    index_names_[table_name][index_name] = index_id;
 
     page_id_t page_id;
     Page *index_meta_page = buffer_pool_manager_->NewPage(page_id);
-
+    catalog_meta_->index_meta_pages_[index_id] = page_id;
     IndexMetadata *index_meta_data = IndexMetadata::Create(index_id, index_name, table_id, key_map);
+    index_meta_data->SerializeTo(index_meta_page->GetData());
+    buffer_pool_manager_->UnpinPage(page_id, true);
 
     index_info = IndexInfo::Create();
     index_info->Init(index_meta_data, table_info, buffer_pool_manager_);
-
-    catalog_meta_->index_meta_pages_[index_id] = page_id;
-    index_names_[table_name][index_name] = index_id;
     indexes_[index_id] = index_info;
-    index_meta_data->SerializeTo(index_meta_page->GetData());
-    buffer_pool_manager_->UnpinPage(page_id, true);
+
+    Page *catalog_meta_page = buffer_pool_manager_->FetchPage(CATALOG_META_PAGE_ID);
+    catalog_meta_->SerializeTo(catalog_meta_page->GetData());
+    buffer_pool_manager_->UnpinPage(CATALOG_META_PAGE_ID, true);
 
     return DB_SUCCESS;
 }
@@ -245,20 +248,16 @@ dberr_t CatalogManager::DropTable(const string &table_name)
         return DB_TABLE_NOT_EXIST;
 
     table_id_t table_id = table_names_[table_name];
+    // tables_.at(table_id)->GetTableHeap()->DeleteTable();
 
     auto idx = index_names_.at(table_name);
     for (auto it : idx)
     {
-        index_id_t index_id = it.second;
-        delete indexes_.at(index_id); // IndexInfo
-        indexes_.erase(index_id);
-        page_id_t index_page_id = catalog_meta_->index_meta_pages_[index_id];
-        buffer_pool_manager_->DeletePage(index_page_id);
-        catalog_meta_->index_meta_pages_.erase(index_id);
+        DropIndex(table_name, it.first);
     }
     index_names_.erase(table_name);
 
-    delete tables_[table_id];
+    free(tables_[table_id]);
     tables_.erase(table_id);
     table_names_.erase(table_name);
 
@@ -279,6 +278,7 @@ dberr_t CatalogManager::DropIndex(const string &table_name, const string &index_
         return DB_INDEX_NOT_FOUND;
 
     index_id_t index_id = index_names_.at(table_name).at(index_name);
+    indexes_.at(index_id)->GetIndex()->Destroy();
     delete indexes_.at(index_id);
     indexes_.erase(index_id);
     page_id_t index_page_id = catalog_meta_->index_meta_pages_[index_id];
@@ -344,7 +344,7 @@ dberr_t CatalogManager::LoadIndex(const index_id_t index_id, const page_id_t pag
     IndexInfo *index_info = IndexInfo::Create();
     index_info->Init(index_meta_data, table_info, buffer_pool_manager_);
     indexes_[index_id] = index_info;
-    //TODO: load from disk
+    // TODO: load from disk
     return DB_SUCCESS;
 }
 

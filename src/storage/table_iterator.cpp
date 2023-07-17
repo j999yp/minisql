@@ -7,6 +7,11 @@ TableIterator::TableIterator()
 {
 }
 
+TableIterator::~TableIterator()
+{
+    delete row;
+}
+
 TableIterator::TableIterator(TableHeap *heap)
 {
     tables = heap;
@@ -16,18 +21,13 @@ TableIterator::TableIterator(TableHeap *heap)
 TableIterator::TableIterator(TableHeap *heap, RowId &rid)
 {
     tables = heap;
-    rid = rid;
+    this->rid = rid;
 }
 
 TableIterator::TableIterator(const TableIterator &other)
 {
     tables = other.tables;
     rid = other.rid;
-}
-
-TableIterator::~TableIterator()
-{
-    delete row;
 }
 
 bool TableIterator::operator==(const TableIterator &itr) const
@@ -44,6 +44,7 @@ const Row &TableIterator::operator*()
 {
     ASSERT(*this != tables->End(), "OOB error");
 
+    row->CleanRow();
     row->SetRowId(rid);
     tables->GetTuple(row, nullptr);
     return *row;
@@ -53,6 +54,7 @@ Row *TableIterator::operator->()
 {
     ASSERT(*this != tables->End(), "OOB error");
 
+    row->CleanRow();
     row->SetRowId(rid);
     tables->GetTuple(row, nullptr);
     return row;
@@ -60,8 +62,11 @@ Row *TableIterator::operator->()
 
 TableIterator &TableIterator::operator=(const TableIterator &itr) noexcept
 {
-    TableIterator tmp(itr);
-    return tmp;
+    this->rid = itr.rid;
+    this->tables = itr.tables;
+    return *this;
+    // TableIterator tmp(itr);
+    // return tmp;
 }
 
 // ++iter
@@ -76,7 +81,7 @@ TableIterator TableIterator::operator++(int)
 {
     TableIterator tmp(*this);
     FindNextRow(rid);
-    return TableIterator(tmp);
+    return tmp;
 }
 
 void TableIterator::FindNextRow(RowId &row_id)
@@ -93,7 +98,6 @@ void TableIterator::FindNextRow(RowId &row_id)
         if (next_page_id == INVALID_PAGE_ID)
         {
             row_id = INVALID_ROWID;
-            tables = nullptr;
         }
         else
             row_id.Set(next_page_id, 0);

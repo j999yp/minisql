@@ -14,36 +14,32 @@ void SeqScanExecutor::Init()
 {
     if (exec_ctx_->GetCatalog()->GetTable(plan_->GetTableName(), table_info) == DB_TABLE_NOT_EXIST)
         throw std::runtime_error("no such table");
-    table_iter = new TableIterator(table_info->GetTableHeap());
+    table_iter = table_info->GetTableHeap()->Begin(nullptr);
+    end = table_info->GetTableHeap()->End();
 }
 
 bool SeqScanExecutor::Next(Row *row, RowId *rid)
 {
-    while (*table_iter != TableIterator())
+    while (table_iter != end)
     {
-        Row *current_row = table_iter++->operator->();
-
         if (plan_->filter_predicate_ == nullptr ||
-            plan_->filter_predicate_.get()->Evaluate(current_row).CompareEquals(Field(kTypeInt, 1)) == kTrue)
+            plan_->filter_predicate_.get()->Evaluate(table_iter.operator->()).CompareEquals(Field(kTypeInt, 1)))
         {
             vector<Field> output{};
             auto columns = plan_->OutputSchema()->GetColumns();
-            output.reserve(columns.size());
-            for (int idx = 0; auto col : columns)
+            Row *tuple = table_iter.operator->();
+            for (auto col : columns)
             {
-                uint32_t index;
-                table_info->GetSchema()->GetColumnIndex(col->GetName(), index);
-                output[idx++] = *current_row->GetField(index);
+                output.push_back(*tuple->GetField(col->GetTableInd()));
             }
-            row = new Row(output);
-            rid = new RowId(current_row->GetRowId());
+            *row = Row(output);
+            row->SetRowId(table_iter.GetRid());
+            *rid = RowId(table_iter.GetRid());
+            ++table_iter;
             return true;
         }
+        else
+            ++table_iter;
     }
     return false;
-}
-
-SeqScanExecutor::~SeqScanExecutor()
-{
-    delete table_iter;
 }

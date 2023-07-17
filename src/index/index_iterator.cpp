@@ -33,7 +33,7 @@ IndexIterator &IndexIterator::operator++()
         buffer_pool_manager->UnpinPage(current_page_id, false);
         if (next_page_id == INVALID_PAGE_ID) // no more pages
         {
-            page = nullptr;
+            // page = nullptr;
             current_page_id = INVALID_PAGE_ID;
             item_index = 0;
         }

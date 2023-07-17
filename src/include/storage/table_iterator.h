@@ -17,7 +17,7 @@ public:
 
     explicit TableIterator(TableHeap *, RowId &);
 
-    explicit TableIterator(const TableIterator &other);
+    /* explicit */ TableIterator(const TableIterator &other);
 
     virtual ~TableIterator();
 
@@ -34,6 +34,8 @@ public:
     TableIterator &operator++();
 
     TableIterator operator++(int);
+
+    inline RowId GetRid() { return rid;}
 
 private:
     // add your own private member variables here

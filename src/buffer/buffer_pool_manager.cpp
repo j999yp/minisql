@@ -135,15 +135,15 @@ bool BufferPoolManager::DeletePage(page_id_t page_id)
     if (pages_[frame_id].pin_count_ > 0)
         return false;
 
-    if (pages_[frame_id].IsDirty())
-        disk_manager_->WritePage(page_id, pages_[frame_id].GetData());
+    pages_[frame_id].ResetMemory();
+    disk_manager_->WritePage(page_id, pages_[frame_id].GetData());
 
     disk_manager_->DeAllocatePage(page_id);
     page_table_.erase(page_id);
     pages_[frame_id].page_id_ = INVALID_PAGE_ID;
     pages_[frame_id].pin_count_ = 0;
     pages_[frame_id].is_dirty_ = false;
-    pages_[frame_id].ResetMemory();
+
     free_list_.emplace_back(frame_id);
     return true;
 }

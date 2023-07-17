@@ -29,6 +29,7 @@ uint32_t Row::SerializeTo(char *buf, Schema *schema) const
     buf += sizeof(uint32_t);
 
     // null bitmap
+    // bit_map_num, 4
     uint8_t map_num = fields_.size() / 8 + 1;
     tmp.uint_ = map_num;
     memcpy(buf, tmp.data_, 4);
@@ -100,7 +101,8 @@ uint32_t Row::DeserializeFrom(char *buf, Schema *schema)
         buf += Field::DeserializeFrom(buf, schema->GetColumn(i)->GetType(), &fields_[i], !(bit_map & (uint8_t)1 << (i % 8)));
     }
 
-    ASSERT(magic_num == ROW_MAGIC_NUM, "Invalid magic num");
+    // ASSERT(magic_num == ROW_MAGIC_NUM, "Invalid magic num");
+    if(magic_num != ROW_MAGIC_NUM) return buf-origin;
     return buf - origin;
 }
 

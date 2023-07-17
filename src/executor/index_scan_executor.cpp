@@ -13,20 +13,22 @@ void IndexScanExecutor::Init()
     Schema *schema = table_info->GetSchema();
 
     std::map<uint32_t, IndexInfo *> col_idx_map;
-    for (auto idx : plan_->indexes_)
+    for (auto index : plan_->indexes_)
     {
-        uint32_t tmp;
-        if (schema->GetColumnIndex(idx->GetIndexName(), tmp) != DB_SUCCESS)
-            throw std::runtime_error("failed to get key index");
-        col_idx_map[tmp] = idx;
+        uint32_t idx;
+        if (schema->GetColumnIndex(index->GetIndexName(), idx) != DB_SUCCESS)
+        {
+            idx = index->GetIndexKeySchema()->GetColumns()[0]->GetTableInd();
+        }
+        col_idx_map[idx] = index;
     }
 
-    std::vector<std::vector<RowId>> tmp{};
-    ScanIndex(plan_->GetPredicate(), col_idx_map, tmp);
-    res = tmp[0];
-    for (int i = 1; i < tmp.size(); i++)
+    std::vector<std::vector<RowId>> scan_buffer{};
+    ScanIndex(plan_->GetPredicate(), col_idx_map, scan_buffer);
+    res = scan_buffer[0];
+    for (int i = 1; i < scan_buffer.size(); i++)
     {
-        auto end = set_intersection(res.begin(), res.end(), tmp[i].begin(), tmp[i].end(), res.begin(), [](RowId a, RowId b)
+        auto end = set_intersection(res.begin(), res.end(), scan_buffer[i].begin(), scan_buffer[i].end(), res.begin(), [](RowId a, RowId b)
                                     { return a.Get() < b.Get(); });
         res.resize(end - res.begin());
     }
@@ -37,33 +39,32 @@ bool IndexScanExecutor::Next(Row *row, RowId *rid)
 {
     while (iter != res.end())
     {
-        Row current_row(*iter++);
+        Row current_row(*iter);
         table_info->GetTableHeap()->GetTuple(&current_row, nullptr);
         if (plan_->need_filter_ == false ||
-            plan_->filter_predicate_.get()->Evaluate(&current_row).CompareEquals(Field(kTypeInt, 1)) == kTrue)
+            plan_->filter_predicate_.get()->Evaluate(&current_row).CompareEquals(Field(kTypeInt, 1)))
         {
             vector<Field> output{};
             auto columns = plan_->OutputSchema()->GetColumns();
-            output.reserve(columns.size());
             for (int idx = 0; auto col : columns)
             {
-                uint32_t index;
-                table_info->GetSchema()->GetColumnIndex(col->GetName(), index);
-                output[idx++] = *current_row.GetField(index);
+                output.push_back(*current_row.GetField(col->GetTableInd()));
             }
-            row = new Row(output);
-            rid = new RowId(current_row.GetRowId());
+            *row = Row(output);
+            row->SetRowId(*iter);
+            *rid = RowId(*iter);
+            ++iter;
             return true;
         }
+        else
+            ++iter;
     }
     return false;
 }
 
 void IndexScanExecutor::ScanIndex(AbstractExpressionRef node, const std::map<uint32_t, IndexInfo *> &map, std::vector<std::vector<RowId>> &res)
 {
-    if (node->GetType() == ExpressionType::ComparisonExpression
-    && node->GetChildAt(0)->GetType() == ExpressionType::ColumnExpression
-    && node->GetChildAt(1)->GetType() == ExpressionType::ConstantExpression)
+    if (node->GetType() == ExpressionType::ComparisonExpression && node->GetChildAt(0)->GetType() == ExpressionType::ColumnExpression && node->GetChildAt(1)->GetType() == ExpressionType::ConstantExpression)
     // leaf node
     {
         auto col_idx = dynamic_pointer_cast<ColumnValueExpression>(node->GetChildAt(0))->GetColIdx();

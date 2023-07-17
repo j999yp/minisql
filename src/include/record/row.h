@@ -118,6 +118,13 @@ public:
 
     inline size_t GetFieldCount() const { return fields_.size(); }
 
+    inline void CleanRow()
+    {
+        for (auto field : fields_)
+            delete field;
+        fields_.clear();
+    }
+
 private:
     static constexpr uint32_t ROW_MAGIC_NUM = 114514;
     RowId rid_{};

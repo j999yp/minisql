@@ -7,6 +7,8 @@
 #include "index/generic_key.h"
 #include "page/index_roots_page.h"
 
+#include "utils/tree_file_mgr.h"
+
 BPlusTree::BPlusTree(index_id_t index_id, BufferPoolManager *buffer_pool_manager, const KeyManager &KM,
                      int leaf_max_size, int internal_max_size)
     : index_id_(index_id),
@@ -38,6 +40,19 @@ BPlusTree::BPlusTree(index_id_t index_id, BufferPoolManager *buffer_pool_manager
 // TODO
 void BPlusTree::Destroy(page_id_t current_page_id)
 {
+    if (current_page_id == INVALID_PAGE_ID)
+        current_page_id = root_page_id_;
+
+    auto current_page = reinterpret_cast<InternalPage *>(buffer_pool_manager_->FetchPage(current_page_id));
+    buffer_pool_manager_->UnpinPage(current_page_id, false);
+    if (!current_page->IsLeafPage())
+    {
+        for (int i = 0; i < current_page->GetSize(); i++)
+        {
+            Destroy(current_page->ValueAt(i));
+        }
+    }
+    buffer_pool_manager_->DeletePage(current_page_id);
 }
 
 /*
@@ -157,7 +172,7 @@ BPlusTreeInternalPage *BPlusTree::Split(InternalPage *node, Transaction *transac
     page_id_t id;
     InternalPage *sibling = reinterpret_cast<InternalPage *>(buffer_pool_manager_->NewPage(id)->GetData());
     sibling->Init(id, node->GetParentPageId(), processor_.GetKeySize(), internal_max_size_);
-    sibling->SetParentPageId(node->GetParentPageId());
+    sibling->SetSize(0);
     node->MoveHalfTo(sibling, buffer_pool_manager_);
     InsertIntoParent(node, sibling->KeyAt(0), sibling);
     return sibling;
@@ -406,7 +421,9 @@ IndexIterator BPlusTree::Begin(const GenericKey *key)
     LeafPage *page = reinterpret_cast<LeafPage *>(FindLeafPage(key));
     buffer_pool_manager_->UnpinPage(page->GetPageId(), false);
     int index = page->KeyIndex(key, processor_);
-    return IndexIterator(page->GetPageId(), buffer_pool_manager_, index);
+    if (index < page->GetSize())
+        return IndexIterator(page->GetPageId(), buffer_pool_manager_, index);
+    return IndexIterator();
 }
 
 /*

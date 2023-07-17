@@ -29,6 +29,8 @@ public:
 
     explicit RowId(int64_t rid) : page_id_(static_cast<page_id_t>(rid >> 32)), slot_num_(static_cast<uint32_t>(rid)) {}
 
+    RowId(const RowId &other) { Set(other.GetPageId(), other.GetSlotNum()); }
+
     inline int64_t Get() const { return (static_cast<int64_t>(page_id_)) << 32 | slot_num_; }
 
     inline page_id_t GetPageId() const { return page_id_; }

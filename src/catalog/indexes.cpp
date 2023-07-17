@@ -87,7 +87,7 @@ uint32_t IndexMetadata::DeserializeFrom(char *buf, IndexMetadata *&index_meta)
 
 Index *IndexInfo::CreateIndex(BufferPoolManager *buffer_pool_manager, const string &index_type)
 {
-    size_t max_size = 0;
+    size_t max_size = 16 + key_schema_->GetColumns().size() / 8 + 1;
     for (auto col : key_schema_->GetColumns())
     {
         max_size += col->GetLength();

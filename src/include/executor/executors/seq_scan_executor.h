@@ -42,7 +42,8 @@ private:
     /** The sequential scan plan node to be executed */
     const SeqScanPlanNode *plan_;
 
-    TableIterator *table_iter = nullptr;
+    TableIterator table_iter;
+    TableIterator end;
     TableInfo *table_info = nullptr;
 };
 
